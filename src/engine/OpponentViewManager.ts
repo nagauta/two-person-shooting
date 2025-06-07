@@ -43,8 +43,21 @@ export class OpponentViewManager {
         // カメラの向きを対戦相手の向きに設定
         camera.rotation.copy(opponentRotation);
         
-        // この時点で、プレイヤー（実際に操作しているキャラクター）が
-        // 対戦相手の視点から見えることになる
+        // プレイヤーメッシュが確実に見えるようにする
+        const playerMesh = this.player.getMesh();
+        if (playerMesh) {
+            playerMesh.visible = true;
+            // プレイヤーの位置を確認してデバッグログ出力
+            const playerPos = this.player.getPosition();
+            console.log(`プレイヤー位置: (${playerPos.x.toFixed(2)}, ${playerPos.y.toFixed(2)}, ${playerPos.z.toFixed(2)})`);
+            console.log(`対戦相手位置: (${opponentPosition.x.toFixed(2)}, ${opponentPosition.y.toFixed(2)}, ${opponentPosition.z.toFixed(2)})`);
+        }
+        
+        // 対戦相手のメッシュは隠す（自分の体は見えないようにする）
+        const opponentMesh = this.opponent.getMesh();
+        if (opponentMesh) {
+            opponentMesh.visible = false;
+        }
     }
 
     private updateBulletVisuals(): void {

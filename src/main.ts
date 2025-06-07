@@ -8,12 +8,12 @@ import { WebRTCManager, GameMessage } from './network/WebRTCManager';
 import { RoomManager } from './ui/RoomManager';
 
 class Game {
-    private engine: GameEngine;
-    private inputManager: InputManager;
-    private player: Player;
-    private opponent: Player;
-    private opponentViewManager: OpponentViewManager;
-    private minimap: Minimap;
+    private engine!: GameEngine;
+    private inputManager!: InputManager;
+    private player!: Player;
+    private opponent!: Player;
+    private opponentViewManager!: OpponentViewManager;
+    private minimap!: Minimap;
     private canvas: HTMLCanvasElement;
     private isRunning: boolean = false;
 
@@ -71,6 +71,11 @@ class Game {
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 this.isRunning ? this.pause() : this.resume();
+            }
+            // デバッグ機能: Tキーでプレイヤーマーカーの表示切り替え
+            if (event.key === 't' || event.key === 'T') {
+                this.opponentViewManager.showPlayerMarker(true);
+                console.log('プレイヤーマーカーを表示しました');
             }
         });
     }

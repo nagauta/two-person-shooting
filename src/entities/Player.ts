@@ -6,7 +6,7 @@ export class Player {
     private rotation: THREE.Euler;
     private velocity: THREE.Vector3;
     private stats: PlayerStats;
-    private mesh: THREE.Object3D;
+    private mesh!: THREE.Object3D;
     private playerType: PlayerType;
     private bullets: Bullet[] = [];
     
@@ -50,6 +50,7 @@ export class Player {
         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
         body.position.y = 0.75;
         body.castShadow = true;
+        body.receiveShadow = true;
         group.add(body);
         
         // 武器（簡単な箱で表現）
@@ -58,6 +59,7 @@ export class Player {
         const weapon = new THREE.Mesh(weaponGeometry, weaponMaterial);
         weapon.position.set(0.3, 1.2, -0.4);
         weapon.castShadow = true;
+        weapon.receiveShadow = true;
         group.add(weapon);
         
         // 頭（視線方向の参考）
@@ -68,10 +70,17 @@ export class Player {
         const head = new THREE.Mesh(headGeometry, headMaterial);
         head.position.y = 1.8;
         head.castShadow = true;
+        head.receiveShadow = true;
         group.add(head);
+        
+        // グループ全体の可視性を確保
+        group.visible = true;
+        group.name = `${this.playerType}_mesh`;
         
         this.mesh = group;
         this.updateMeshPosition();
+        
+        console.log(`${this.playerType} メッシュを作成しました`);
     }
 
     public handleMovement(movement: MovementInput): void {
