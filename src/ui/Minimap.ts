@@ -32,11 +32,17 @@ export class Minimap {
         this.drawPlayer(player, '#0066ff', true);  // プレイヤー（青色）
         this.drawPlayer(opponent, '#ff6600', false); // 対戦相手（オレンジ色）
         
+        // プレイヤーが相手の視界内にいるかチェック
+        this.highlightPlayerInView(player, opponent);
+        
         // 視野角を描画
         this.drawFieldOfView(opponent);
         
         // 弾丸を描画
         this.drawBullets(player, opponent);
+        
+        // デバッグ情報を表示
+        this.drawDebugInfo(player, opponent);
     }
 
     private drawBackground(): void {
@@ -120,8 +126,10 @@ export class Minimap {
         this.ctx.moveTo(x, y);
         
         const directionLength = 12;
-        const dirX = x + Math.sin(rotation.y) * directionLength;
-        const dirY = y - Math.cos(rotation.y) * directionLength;
+        // Three.jsの回転をCanvas座標系に正しく変換
+        const canvasAngle = -rotation.y + Math.PI / 2;
+        const dirX = x + Math.cos(canvasAngle) * directionLength;
+        const dirY = y + Math.sin(canvasAngle) * directionLength;
         
         this.ctx.lineTo(dirX, dirY);
         this.ctx.stroke();
@@ -151,15 +159,32 @@ export class Minimap {
         this.ctx.lineWidth = 1;
         
         const viewDistance = 50 * this.scale;
-        const fov = Math.PI / 3; // 60度
-        const startAngle = rotation.y - fov / 2;
-        const endAngle = rotation.y + fov / 2;
+        const fov = Math.PI / 3; // 60度（OpponentViewManagerと同じ）
+        
+        // Three.jsの回転を2Dキャンバスの角度に変換
+        // Three.js: Y軸回転（左右）、Z軸が前方（-1方向）
+        // Canvas: 0度が右方向、反時計回りが正
+        // 座標系の変換: Three.jsのY回転 → Canvas角度
+        const canvasAngle = -rotation.y + Math.PI / 2; // 90度回転してZ軸前方向をCanvas上方向に合わせる
+        
+        const startAngle = canvasAngle - fov / 2;
+        const endAngle = canvasAngle + fov / 2;
         
         this.ctx.beginPath();
         this.ctx.moveTo(x, y);
         this.ctx.arc(x, y, viewDistance, startAngle, endAngle);
         this.ctx.closePath();
         this.ctx.fill();
+        this.ctx.stroke();
+        
+        // デバッグ: 視線方向に線を描画
+        this.ctx.strokeStyle = '#ff0000';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x, y);
+        const dirX = x + Math.cos(canvasAngle) * 20;
+        const dirY = y + Math.sin(canvasAngle) * 20;
+        this.ctx.lineTo(dirX, dirY);
         this.ctx.stroke();
     }
 
@@ -198,6 +223,67 @@ export class Minimap {
     private worldToMapY(worldZ: number): number {
         // Zを反転（3D空間ではZ軸が奥行きなので、マップでは上下を反転）
         return this.mapSize - (worldZ + this.worldSize / 2) * this.scale;
+    }
+
+    private highlightPlayerInView(player: Player, opponent: Player): void {
+        // OpponentViewManagerと同じロジックで視界判定
+        const opponentPosition = opponent.getPosition();
+        const playerPosition = player.getPosition();
+        const opponentRotation = opponent.getRotation();
+        
+        // プレイヤーまでの方向と距離
+        const playerDirection = playerPosition.clone().sub(opponentPosition);
+        const playerDistance = playerDirection.length();
+        playerDirection.normalize();
+        
+        // 対戦相手の視線方向（Three.js座標系）
+        const opponentForward = new THREE.Vector3(0, 0, -1);
+        opponentForward.applyEuler(opponentRotation);
+        
+        // プレイヤーが視野角内にいるかチェック
+        const angle = opponentForward.angleTo(playerDirection);
+        const fieldOfView = Math.PI / 3; // 60度
+        const canSeePlayer = angle < fieldOfView / 2 && playerDistance < 50;
+        
+        if (canSeePlayer) {
+            // プレイヤーの周囲に赤い円を描画
+            const x = this.worldToMapX(playerPosition.x);
+            const y = this.worldToMapY(playerPosition.z);
+            
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 3;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 8, 0, 2 * Math.PI);
+            this.ctx.stroke();
+            
+            // 警告テキスト
+            this.ctx.fillStyle = '#ff0000';
+            this.ctx.font = 'bold 10px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('発見！', x, y - 20);
+        }
+    }
+
+    private drawDebugInfo(player: Player, opponent: Player): void {
+        // デバッグ情報をキャンバスに表示
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.font = '12px Arial';
+        this.ctx.textAlign = 'left';
+        
+        const playerPos = player.getPosition();
+        const opponentPos = opponent.getPosition();
+        const opponentRot = opponent.getRotation();
+        
+        // 位置と回転情報を表示
+        const debugText = [
+            `プレイヤー: (${playerPos.x.toFixed(1)}, ${playerPos.z.toFixed(1)})`,
+            `対戦相手: (${opponentPos.x.toFixed(1)}, ${opponentPos.z.toFixed(1)})`,
+            `対戦相手回転Y: ${(opponentRot.y * 180 / Math.PI).toFixed(1)}°`
+        ];
+        
+        debugText.forEach((text, index) => {
+            this.ctx.fillText(text, 5, 15 + index * 15);
+        });
     }
 
     public resize(): void {
