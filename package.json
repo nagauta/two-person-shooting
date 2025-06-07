@@ -1,0 +1,20 @@
+{
+  "name": "two-person-shooting",
+  "version": "1.0.0",
+  "description": "A browser-based FPS game with opponent's perspective",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vite": "^4.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "dependencies": {
+    "three": "^0.155.0",
+    "@types/three": "^0.155.0"
+  }
+} 
